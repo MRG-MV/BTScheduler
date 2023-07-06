@@ -236,4 +236,77 @@ public with sharing class bryntumGanttController {
         System.debug('searchProjectManagerList: ' + searchProjectManagerList);
         return searchProjectManagerList;
     }
+
+    @AuraEnabled
+    public static String getFieldSet(){
+        String result = '';
+        String objectName = 'buildertek__Schedule__c';
+        String fieldSetName = 'buildertek__ScheduleFields';
+        List<String> pickListValuesList = new List<String>();
+        try{
+            SObjectType objToken = Schema.getGlobalDescribe().get(objectName);
+            Schema.DescribeSObjectResult d = objToken.getDescribe();
+            Map<String, Schema.FieldSet> FsMap = d.fieldSets.getMap();
+            if (FsMap.containsKey(fieldSetName)){
+                for (Schema.FieldSetMember f : FsMap.get(fieldSetName).getFields()){
+                    if (result != ''){
+                        result += ',';
+                    }
+                    String jsonPart = '{';
+                    jsonPart += '"label":"' + f.getLabel() + '",';
+                    jsonPart += '"required":"' + (f.getDBRequired() || f.getRequired()) + '",';
+                    jsonPart += '"type":"' + (f.getType()) + '",';
+                    jsonPart += '"name":"' + f.getFieldPath() + '"';
+                    if (String.valueOf(f.getType()) == 'PICKLIST'){
+                        pickListValuesList = getDropDown(String.valueOf(f.getFieldPath()));
+                        jsonPart += ',"pickListValuesList":' + JSON.serialize(pickListValuesList);
+                    }
+                    jsonPart += '}';
+                    result += jsonPart;
+                }
+            }
+
+        } catch (Exception e){
+            result += e.getLineNumber() + ' : ' + e.getMessage();
+            System.debug('Error::' + e.getMessage());
+            System.debug('Error At Line::' + e.getLineNumber());
+        }
+        return '[' + result + ']';
+    }
+
+    @AuraEnabled
+    public static List<String> getDropDown(String fieldName){
+        String objName = 'buildertek__Schedule__c';
+        List<String> pickListValuesList = new List<String>();
+        try{
+            Schema.SObjectType s = Schema.getGlobalDescribe().get(objName);
+            Schema.DescribeSObjectResult r = s.getDescribe();
+            Map<String, Schema.SObjectField> fields = r.fields.getMap();
+            Schema.DescribeFieldResult fieldResult = fields.get(fieldName).getDescribe();
+            List<Schema.PicklistEntry> ple = fieldResult.getPicklistValues();
+            for (Schema.PicklistEntry pickListVal : ple){
+                pickListValuesList.add(pickListVal.getLabel());
+            }
+        } catch (Exception e){
+            throw new AuraHandledException(e.getMessage());
+        }
+        return pickListValuesList;
+    }
+
+    @AuraEnabled
+    public static list<buildertek__Schedule__c> fetchScheduleList(){
+
+        return [select id, Name, buildertek__Type__c, buildertek__Total_Duration__c, buildertek__Description__c
+        from buildertek__Schedule__c
+        where buildertek__Type__c LIKE '%Master%'];
+    }
+
+    @AuraEnabled
+    public static list<buildertek__Project_Task__c> getScheduleItemList(String masterId){
+        string mId = masterId;
+        return [select id, Name, buildertek__Start__c, buildertek__Phase__c, buildertek__Schedule__c, buildertek__Budget__c, buildertek__Budget_Line__c, buildertek__Completed__c, buildertek__Completion__c, buildertek__Contractor__c, buildertek__Contractor_Resource__c, buildertek__Cost_Code__c, buildertek__Duration__c, buildertek__Finish__c, buildertek__Resource__c, buildertek__Lag__c, buildertek__Last_Saved_End_Date__c, buildertek__Last_Saved_Start_Date__c, buildertek__Material_Ordered__c, buildertek__Material_Received__c, buildertek__Milestone__c, buildertek__Notes__c, buildertek__Order__c, buildertek__Original_End_Date__c, buildertek__Original_Start_Date__c, buildertek__Payable_Task__c, buildertek__Project__c
+                from buildertek__Project_Task__c
+                where buildertek__Schedule__c = :mId
+                order by createdDate];
+    }
 }

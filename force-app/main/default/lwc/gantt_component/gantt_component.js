@@ -239,8 +239,8 @@ export default class Gantt_component extends LightningElement {
     const gantt = new bryntum.gantt.Gantt({
       project,
       appendTo: this.template.querySelector(".container"),
-      startDate: "2019-01-12",
-      endDate: "2019-03-24",
+      // startDate: "2019-07-01",
+      // endDate: "2019-10-01",
 
       tbar: new GanttToolbar(),
 
@@ -334,6 +334,11 @@ export default class Gantt_component extends LightningElement {
           }
         }
       }
+    });
+
+    gantt.on('cellClick', ({ record }) => {
+      // Scroll the associated task into view
+      gantt.scrollTaskIntoView(record);
     });
 
     console.log('gantt:-', gantt);

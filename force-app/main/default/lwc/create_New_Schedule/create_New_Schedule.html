@@ -9,7 +9,7 @@
             </header>
             <h3 class="slds-section-title--divider" style="font-weight: bold; color: black; padding-top: 1rem;">
                 Information</h3>
-            <table class="slds-table slds-no-row-hover" style="color: black; padding-top: 1rem;">
+            <table class="slds-table slds-no-row-hover detailContainer" style="color: black; padding-top: 1rem;">
                 <tr>
                     <td>
                         <div class="slds-form-element">
@@ -24,36 +24,38 @@
                             <div class="slds-form-element__control">
                                 <div class="slds-combobox_container">
                                     <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click">
-                                        <lightning-input label="Project " type="search"
-                                            placeholder="Search BT Projects..." style="margin-bottom: 20px !important;"
-                                            icon-name="utility:search" icon-position="right" value={searchKey}
-                                            onchange={handleSearchKeyChange}></lightning-input>
-                                            <!--  -->
-                                                <!-- <lightning-input label="Project" type="search" placeholder="Search BT Projects..." style="margin-bottom: 20px !important;" 
-                                                value={projectName} oninput={handleRecordSearch}> </lightning-input>
-                                        
-                                                    <div class="highlights-icon-container slds-avatar slds-m-left_small icon" style="background-color: #e56798">
-                                                        <img src="https://buildertek2-dev-ed.develop.my.salesforce.com/img/icon/t4v35/custom/custom24_120.png" alt="">
-                                                    </div>
-
-                                                <div if:true={showRecords} class="records">
-                                                    <ul class="suggestions">
-                                                        <template for:each={suggestedResult} for:item="opportunity">
-                                                            <li key={opportunity.Id} onclick={suggestedRecord}>
-                                                                <div class="recitem">
-                                                                    <div class="recicon">
-                                                                        <lightning-icon icon-name='standard:opportunity' size='medium'>
-                                                                        </lightning-icon>
-                                                                    </div>
-                                                                    <div class="opportunity-name">{opportunity.Name}
-                                                                    </div>
-                                                                </div>
-                                                            </li>
-                                                        </template>
-                                                    </ul>
-                                                </div> -->
-                                            <!--  -->
-                                    </div>
+                                        <lightning-input label="Project" type="search" placeholder="Search BT Projects..." style="margin-bottom: 20px !important;" name="searchProjectName" data-id="project" value={searchProjectName} 
+                                        onchange={handleProjectSearch}></lightning-input>
+                                        <div if:true={showProjectName} class="records">
+                                            <ul class="suggestions">
+                                                <span class="sdls-media__body">
+                                                    <span
+                                                        class="slds-listbox__option-text slds-listbox__option-text_entity"
+                                                        style="text-align: center; margin-top: 10px;">
+                                                        <lightning-icon icon-name='utility:search' size='x-small'
+                                                            style="margin-right: 10px;"></lightning-icon>
+                                                        <span class="slds-truncate"
+                                                            title="Show All Results for &quot;test&quot;">
+                                                            Show All Results for {searchProjectName}
+                                                        </span>
+                                                    </span>
+                                                </span>
+                                                <template for:each={suggestedProjectName} for:item="project">
+                                                    <li key={project.Id} onclick={selectedRecord}>
+                                                        <div class="recitem">
+                                                            <div class="highlights-icon-container slds-avatar slds-m-right_small icon"
+                                                                style="background-color: #e56798">
+                                                                <img src="https://btservice360-dev-ed.my.salesforce.com/img/icon/t4v35/custom/custom24_120.png"
+                                                                    alt="">
+                                                            </div>
+                                                            <div class="project-name">{project.Name}
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                </template>
+                                            </ul>
+                                        </div>
+                                    </div> 
                                 </div>
                             </div>
                         </div>
@@ -88,8 +90,38 @@
                                 <div class="slds-combobox_container">
                                     <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click">
                                         <lightning-input name="project" label="Project Manager - User" type="search"
-                                            placeholder="Search People..." icon-name="utility:search"
-                                            icon-position="right"></lightning-input>
+                                            placeholder="Search People..." data-id="user" value={searchProjectManager}
+                                            onchange={handleProjectManagerSearch}></lightning-input>
+                                        <div if:true={showProjectManagerName} class="records">
+                                            <ul class="suggestions">
+                                                <span class="sdls-media__body">
+                                                    <span
+                                                        class="slds-listbox__option-text slds-listbox__option-text_entity"
+                                                        style="text-align: center; margin-top: 10px;">
+                                                        <lightning-icon icon-name='utility:search' size='x-small'
+                                                            style="margin-right: 10px;"></lightning-icon>
+                                                        <span class="slds-truncate"
+                                                            title="Show All Results for &quot;test&quot;">
+                                                            Show All Results for {searchProjectManager}
+                                                        </span>
+                                                    </span>
+                                                </span>
+                                                <template for:each={suggestedProjectManagerName} for:item="user">
+                                                    <li key={user.Id} onclick={selectedRecord}>
+                                                        <div class="recitem">
+                                                            <div
+                                                                class="highlights-icon-container slds-avatar slds-m-right_small icon">
+                                                                <lightning-icon icon-name='standard:user'
+                                                                    alternative-text='user' size='medium'>
+                                                                </lightning-icon>
+                                                            </div>
+                                                            <div class="user-name">{user.Name}
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                </template>
+                                            </ul>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -97,7 +129,6 @@
                     </td>
                 </tr>
             </table>
-
             <div style="height: 12.2rem;overflow-y: scroll; margin-top: 2%;">
 
                 <div>
@@ -121,6 +152,28 @@
                             </th>
                         </tr>
                     </thead>
+                    <tbody>
+                        <template for:each={masterId} for:item="item" for:index="index">
+                            <tr key={item.Id}>
+                                <td>
+                                    <span data-id={item.Id} onchange={saveSelectedPO}>
+                                        <input type="radio" name="select" value={item.selectedPurchaseOrder} />
+                                    </span>
+                                </td>
+                                <td class="slds-truncate">
+                                    <!-- <a href={'/' + item.Id}>{item.Name}</a> -->
+                                    <a href=#>{item.Name}</a>
+                                </td>
+                                <td>
+                                    {item.buildertek__Description__c}
+                                </td>
+                                <td>
+                                    {item.buildertek__Total_Duration__c}
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+
                 </table>
             </div>
 
@@ -134,5 +187,4 @@
             </div>
         </lightning-record-edit-form>
     </div>
-
 </template>
