@@ -2,7 +2,7 @@
 import {LightningElement,track} from "lwc";
 import {ShowToastEvent} from "lightning/platformShowToastEvent";
 import {loadScript,loadStyle} from "lightning/platformResourceLoader";
-import GANTT from "@salesforce/resourceUrl/bryntum_gantt";
+import GANTT from "@salesforce/resourceUrl/bryntum_gantt_new";
 import GanttToolbarMixin from "./lib/GanttToolbar";
 import data from './data/launch-saas';
 import scheduleWrapperDataFromApex from "@salesforce/apex/bryntumGanttController.getScheduleWrapperAtLoading"
@@ -256,12 +256,13 @@ export default class Gantt_component extends LightningElement {
           type: "startdate"
         },
         {
-          type: "duration"
+          type: "duration",
+          allowedUnits: 'hour',
         },
-        {
-          type: "resourceassignment",
-          width: 120
-        },
+        // {
+        //   type: "contractor",
+        //   width: 120
+        // },
         {
           type: "percentdone",
           showCircle: true,
@@ -269,12 +270,148 @@ export default class Gantt_component extends LightningElement {
         },
         {
           type: "predecessor",
-          width: 112
+          width: 120,
+          renderer: (record) => {
+            console.log('record :- ',JSON.parse(JSON.stringify(record.record.data)));
+            if (record.record._data.type == "Project") {
+              return "";
+            }
+            if (record.record._data.type == "Phase") {
+              return "";
+            }
+            if (record.record._data.name == "Milestone Complete") {
+              return "";
+            } else {
+              return record.record._data.predecessorName;
+            }
+          },
         },
         {
-          type: "successor",
-          width: 112
+          text: "Internal Resource",
+          type: 'resourceassignment',
+          width: 120,
+          editor: true,
+          items: {
+            Test1 : 'Test1',
+            Test2 : 'Test2',
+          },
+          renderer: function (record) {
+            if (
+              record.record._data.type == "Task" &&
+              record.record._data.name != "Milestone Complete"
+            ) {
+              if (record.record._data.internalresource) {
+                record.cellElement.classList.add("b-resourceassignment-cell");
+                record.cellElement.innerHTML = `<div class="b-assignment-chipview-wrap">
+                                  <div class="b-assignment-chipview b-widget b-list b-chipview b-outer b-visible-scrollbar b-chrome b-no-resizeobserver b-widget-scroller b-hide-scroll" tabindex="0" style="overflow-x: auto;" >
+                                      <div class="b-chip" data-index="0" data-isinternalresource="true" > ${record.record._data.internalresourcename}</div>
+                                      <i id="editInternalResource" data-resource="${record.record._data.internalresource}" class="b-action-item b-fa b-fa-pen" style="font-size:1rem;color:#cfd1d3;margin-left:0.2rem;" id="editInternalResource" ></i>
+                                      </div>
+                              </div>`;
+              } else {
+                record.cellElement.innerHTML = `
+                              <i  class="b-action-item b-fa b-fa-user-plus addinternalresource" style="font-size:1rem;color:#cfd1d3;margin-left:0.2rem;"  ></i>
+                              `;
+              }
+            } else {
+              record.cellElement.innerHTML = `<span></span>`;
+            }
+          },
+          filterable: ({ record, value, operator }) => {
+            if (record._data.internalresourcename && value) {
+              if (
+                record._data.internalresourcename
+                  .toUpperCase()
+                  .indexOf(value.toUpperCase()) > -1
+              ) {
+                return true;
+              }
+            }
+          },
         },
+        //Added for Contractor
+        {
+          text: "Contractor",
+          width: 120,
+          editor: false,
+          renderer: function (record) {
+            console.log('record :- ',JSON.parse(JSON.stringify(record.record.data)));
+
+            if (
+              record.record._data.type == "Task" &&
+              record.record._data.name != "Milestone Complete"
+            ) {
+              if (record.record._data.contractoracc) {
+                record.cellElement.classList.add("b-resourceassignment-cell");
+                record.cellElement.innerHTML = `<div id="" class="b-assignment-chipview-wrap">
+                                  <div class="b-assignment-chipview b-widget b-list b-chipview b-outer b-visible-scrollbar b-chrome b-no-resizeobserver b-widget-scroller b-hide-scroll" tabindex="0" style="overflow-x: auto;" >
+                                      <div class="b-chip" data-index="0" data-isinternalres="false" > ${record.record._data.contractorname}</div>
+                                      <i id="editcontractor" data-resource="${record.record._data.contractorname}" class="b-action-item b-fa b-fa-pen" style="font-size:1rem;color:#cfd1d3;margin-left:0.2rem;"  ></i>
+                                      </div>
+                              </div>`;
+              } else {
+                record.cellElement.innerHTML = `
+                              <i  class="b-action-item b-fa b-fa-user-plus addcontractor" style="font-size:1rem;color:#cfd1d3;margin-left:0.2rem;"  ></i>
+                              `;
+              }
+            } else {
+              record.cellElement.innerHTML = `<span></span>`;
+            }
+          },
+          filterable: ({ record, value, operator }) => {
+            if (record._data.contractorresourcename && value) {
+              if (
+                record._data.contractorresourcename
+                  .toUpperCase()
+                  .indexOf(value.toUpperCase()) > -1
+              ) {
+                return true;
+              }
+            }
+          },
+        },
+        {
+          text: "Contractor Resource",
+          width: 110,
+          editor: false,
+          renderer: function (record) {
+            if (
+              record.record._data.type == "Task" &&
+              record.record._data.name != "Milestone Complete"
+            ) {
+              if (record.record._data.contractorresource) {
+                record.cellElement.classList.add("b-resourceassignment-cell");
+                record.cellElement.innerHTML = `<div id="" class="b-assignment-chipview-wrap">
+                                  <div class="b-assignment-chipview b-widget b-list b-chipview b-outer b-visible-scrollbar b-chrome b-no-resizeobserver b-widget-scroller b-hide-scroll" tabindex="0" style="overflow-x: auto;" >
+                                      <div class="b-chip" data-index="0" data-isinternalres="false" > ${record.record._data.contractorresourcename}</div>
+                                      <i id="editcontractorResource" data-resource="${record.record._data.contractorresource}" class="b-action-item b-fa b-fa-pen" style="font-size:1rem;color:#cfd1d3;margin-left:0.2rem;"  ></i>
+                                      </div>
+                              </div>`;
+              } else {
+                record.cellElement.innerHTML = `
+                              <i  class="b-action-item b-fa b-fa-user-plus addcontractorresource" style="font-size:1rem;color:#cfd1d3;margin-left:0.2rem;"  ></i>
+                              `;
+              }
+            } else {
+              record.cellElement.innerHTML = `<span></span>`;
+            }
+          },
+          filterable: ({ record, value, operator }) => {
+            if (record._data.contractorresourcename && value) {
+              if (
+                record._data.contractorresourcename
+                  .toUpperCase()
+                  .indexOf(value.toUpperCase()) > -1
+              ) {
+                return true;
+              }
+            }
+          },
+        },
+        // {
+        //   type: "successor",
+        //   width: 112
+        // },
         {
           type: "schedulingmodecolumn"
         },
@@ -332,7 +469,7 @@ export default class Gantt_component extends LightningElement {
               type: "textfield"
             }
           }
-        }
+        },
       }
     });
 
