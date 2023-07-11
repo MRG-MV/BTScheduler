@@ -1,4 +1,5 @@
 public with sharing class bryntumGanttController {
+    
     @AuraEnabled
     public static DataTableDetails getScheduleWrapperAtLoading(string scheduleid){
 
@@ -103,8 +104,8 @@ public with sharing class bryntumGanttController {
         system.debug('Schedule Items ::' + dataTableDtls.lstOfSObjs);
         system.debug('Schedule Item ::' + dataTableDtls);
         buildertek__Schedule__c schedulerec = [Select Id, Name, buildertek__Gantt_Draw_Dependencies__c, buildertek__Gantt_Highlight_Non_Working_Time__c, buildertek__Gantt_Project_Lines__c, buildertek__Gantt_Task_Labels__c, buildertek__Hide_Gantt_Schedule__c, buildertek__Project__c, buildertek__Project__r.Name
-                                               from buildertek__Schedule__c
-                                               Where Id = :scheduleid];
+                                            from buildertek__Schedule__c
+                                            Where Id = :scheduleid];
         dataTableDtls.scheduleObj = schedulerec;
         NotesAttachmet notesAttachFiles = new NotesAttachmet();
         Map<String, NotesAttachmet> getnotesFilesLengthMap = new Map<String, NotesAttachmet>();
@@ -124,17 +125,17 @@ public with sharing class bryntumGanttController {
             if (notesIdList.size() > 0){
                 Set<Id> contentDocumentIds = new Set<Id>();
                 for (ContentDocumentLink conDoc : [SELECT ContentDocumentId, LinkedEntityId
-                                                   FROM ContentDocumentLink
-                                                   WHERE LinkedEntityId IN:notesIdList]){
+                                                FROM ContentDocumentLink
+                                                WHERE LinkedEntityId IN:notesIdList]){
                     contentDocumentIds.add(conDoc.ContentDocumentId);
                     docAndParentMap.put(conDoc.ContentDocumentId, conDoc.LinkedEntityId);
                 }
                 System.debug(docAndParentMap);
                 //get all the content notes using contentDocumentIds
                 List<ContentNote> contentNotes = [SELECT Id, Content, Title, TextPreview, CreatedDate
-                                                  from ContentNote
-                                                  where Id In:contentDocumentIds
-                                                  order by CreatedDate ASC];
+                                                from ContentNote
+                                                where Id In:contentDocumentIds
+                                                order by CreatedDate ASC];
                 System.debug(contentNotes);
                 for (ContentNote noteRec : contentNotes){
                     system.debug(noteRec.Id);
@@ -180,8 +181,8 @@ public with sharing class bryntumGanttController {
         }
 
         User curruser = [select id, Name, buildertek__Hide_Schedule__c
-                         from User
-                         where id = :userInfo.getUserId()];
+                        from User
+                        where id = :userInfo.getUserId()];
 
         List<object> fileLenListCustom = new list<Object>();
 
@@ -191,14 +192,117 @@ public with sharing class bryntumGanttController {
         dataTableDtls.filesandattacmentList = getnotesFilesLengthMap;
         dataTableDtls.hideScheduleFromUser = curruser.buildertek__Hide_Schedule__c;
         Id profileId = userinfo.getProfileId();
-        String profileName = [Select Id, Name
-                              from Profile
-                              where Id = :profileId].Name;
+        String profileName = [Select Id, Name from Profile where Id = :profileId].Name;
         system.debug('ProfileName' + profileName);
         system.debug(userinfo.getusername());
         dataTableDtls.profileName = profileName;
         System.debug('dataTable :: ' + dataTableDtls);
         return dataTableDtls;
+    }
+
+    @AuraEnabled
+    public static RfqDataTableWrapper getAccounts(Integer pageNumber, Integer pageSize,String selected,String searchaccount){
+        try {
+            List<Account> accList = new List<Account>();
+
+            Integer offset = (pageNumber - 1) * pageSize;
+            //Total Records
+            Integer totalRecords = 0;
+
+            String accountsearch = '%'+''+'%';
+            if(searchaccount != '' && searchaccount != null){
+                accountsearch = '%'+searchaccount+'%';
+            }
+
+            if(searchaccount != ''){
+                String query = 'Select COUNT() FROM Account WHERE id!=NULL';
+
+                if(searchaccount != '' && searchaccount != null){
+                    query = query+ ' AND Name LIKE \'%'+String.escapeSingleQuotes(searchaccount)+'%\'';
+                }
+                totalRecords = Database.countQuery(query);
+            }else{
+                totalRecords = [SELECT COUNT() FROM Account ];
+            }
+
+            Integer recordEnd = pageSize * pageNumber;
+
+            //Instance of Account DataTable Wrapper Class
+            RfqDataTableWrapper objDT = new RfqDataTableWrapper();
+            objDT.pageSize = pageSize;
+            objDT.pageNumber = pageNumber;
+            objDT.recordStart = offset + 1;
+            objDT.recordEnd = totalRecords >= recordEnd ? recordEnd : totalRecords;
+            objDT.totalRecords = totalRecords;
+
+            String queryList2 = '';
+            String queryList = 'Select Id,Name FROM Account WHERE id!=NULL ';
+            if(searchaccount != '' && searchaccount != null){
+                queryList = queryList+ ' AND (Name LIKE \'%'+searchaccount+'%\')'; //String.escapeSingleQuotes(description)
+            }
+            queryList2 = queryList+ ' ORDER BY Name';
+            queryList = queryList+ ' ORDER BY Name LIMIT :pageSize OFFSET :offset';
+
+            List<Account> allContacts =  Database.query(queryList2);
+
+            List<Account> accRecL = Database.query(queryList);
+
+            List<RfqDataTableSubWrapper> subwrapperlist = new List<RfqDataTableSubWrapper>();
+            for(Account a: accRecL){
+                RfqDataTableSubWrapper rs = new RfqDataTableSubWrapper();
+                rs.Id = a.Id;
+                rs.Name = a.Name;
+                rs.check = String.valueOf(a.Id) == selected ? true : false;
+                subwrapperlist.add(rs);
+            }
+            objDT.accRecList = subwrapperlist;
+
+            return objDT;
+
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @AuraEnabled
+    public static List<contactWrap> getContacts(String selected,String searchname,String searchaccount){
+        String contactsearch = '%'+''+'%';
+        if(searchname != '' && searchname != null){
+            contactsearch = '%'+searchname+'%';
+        }
+        String accountsearch = '%'+''+'%';
+        if(searchaccount != '' && searchaccount != null){
+            accountsearch = '%'+searchaccount+'%';
+        }
+        String queryStr = 'Select Id,Name,AccountId,Account.Name From Contact Where Name LIKE:contactsearch ';
+        if(searchaccount != '' && searchaccount != null){
+            queryStr += ' AND Account.Name LIKE:accountsearch Order by Name';
+        }else{
+            queryStr += ' Order by Name';
+        }
+        List<Contact> conList = Database.query(queryStr);
+        //List<Contact> conList = [Select Id,Name,AccountId,Account.Name From Contact Order by Name];
+        List<contactWrap> conWrapList = new List<contactWrap>();
+        String conName = '';
+        if(conList.size() > 0){
+            for(Contact con : conList){
+                    contactWrap conwrapLabelVal = new contactWrap();
+                    conwrapLabelVal.label = con.Name;
+                    conwrapLabelVal.value = con.Id;
+                    conwrapLabelVal.check = false;
+                    conwrapLabelVal.accId = con.AccountId;
+                    conwrapLabelVal.accName = '';
+                    if(con.AccountId != null){
+                        conwrapLabelVal.accName = con.Account.Name;
+                    }
+
+                    if(selected == String.valueOf(con.Id) && selected != ''){
+                    conwrapLabelVal.check = true;
+                    }
+                    conWrapList.add(conwrapLabelVal);
+            }
+        }
+        return conWrapList;
     }
 
     public class DataTableDetails{
@@ -221,6 +325,73 @@ public with sharing class bryntumGanttController {
         public Integer fileLength;
         @AuraEnabled
         public Integer notesLength;
+    }
+
+    public class RfqDataTableWrapper{
+        @AuraEnabled
+        public Integer pageSize{ get; set; }
+
+        @AuraEnabled
+        public Integer pageNumber{ get; set; }
+
+        @AuraEnabled
+        public Integer totalRecords{ get; set; }
+
+        @AuraEnabled
+        public Integer recordStart{ get; set; }
+
+        @AuraEnabled
+        public Integer recordEnd{ get; set; }
+
+        @AuraEnabled
+        public List<Contact> recordList{ get; set; }
+
+        @AuraEnabled
+        public List<contactWrap> wrapperList ;
+
+        @AuraEnabled
+        public String label;
+        @AuraEnabled
+        public String value;
+        @AuraEnabled
+        public Boolean check;
+        @AuraEnabled
+        public String accId;
+        @AuraEnabled
+        public String accName;
+
+        @AuraEnabled
+        public List<RfqDataTableSubWrapper> accRecList {get;set;}
+        // @AuraEnabled
+        // public List<RfqDataTableSubWrapper> subwraplist {get;set;}
+
+        // @AuraEnabled
+        // public List<Account> accRecList{get;set;}
+    }
+
+    public class RfqDataTableSubWrapper{
+        @AuraEnabled
+        public String Id {get;set;}
+
+        @AuraEnabled
+        public String Name {get;set;}
+
+        @AuraEnabled
+        public Boolean check {get;set;}
+    }
+
+    public class contactWrap{
+
+        @AuraEnabled
+        public String label;
+        @AuraEnabled
+        public String value;
+        @AuraEnabled
+        public Boolean check;
+        @AuraEnabled
+        public String accId;
+        @AuraEnabled
+        public String accName;
     }
 
     @AuraEnabled(Cacheable=true)
@@ -304,9 +475,126 @@ public with sharing class bryntumGanttController {
     @AuraEnabled
     public static list<buildertek__Project_Task__c> getScheduleItemList(String masterId){
         string mId = masterId;
+        System.debug('mId: ' + mId);
         return [select id, Name, buildertek__Start__c, buildertek__Phase__c, buildertek__Schedule__c, buildertek__Budget__c, buildertek__Budget_Line__c, buildertek__Completed__c, buildertek__Completion__c, buildertek__Contractor__c, buildertek__Contractor_Resource__c, buildertek__Cost_Code__c, buildertek__Duration__c, buildertek__Finish__c, buildertek__Resource__c, buildertek__Lag__c, buildertek__Last_Saved_End_Date__c, buildertek__Last_Saved_Start_Date__c, buildertek__Material_Ordered__c, buildertek__Material_Received__c, buildertek__Milestone__c, buildertek__Notes__c, buildertek__Order__c, buildertek__Original_End_Date__c, buildertek__Original_Start_Date__c, buildertek__Payable_Task__c, buildertek__Project__c
                 from buildertek__Project_Task__c
                 where buildertek__Schedule__c = :mId
                 order by createdDate];
     }
+
+    /* @Author        Karan Patel
+     * Date           10-7-23
+     * Description :  This method is used to create New Schedule.
+     */
+
+    @AuraEnabled
+    public static String createNewSchedule(String description, Id project ,Date initialStartDate, String type, String user, String masterId) {
+        System.debug('description: ' + description);
+        System.debug('project: ' + project);
+        System.debug('initialStartDate: ' + initialStartDate);
+        System.debug('type: ' + type);
+        System.debug('user: ' + user);
+        System.debug('masterId: ' + masterId);
+        buildertek__Schedule__c schedule = new buildertek__Schedule__c(
+            buildertek__Description__c = description,
+            buildertek__Project__c = project,
+            buildertek__Initial_Start_Date__c = date.parse(initialStartDate.format()),
+            buildertek__Type__c = type,
+            buildertek__Project_Managers__c = user
+        );
+        insert schedule;
+        String pageUrl = schedule.Id;
+        createScheduleLineFromMasterSchedule(schedule.Id, masterId, initialStartDate);
+        return pageUrl;
+    }
+
+    /* @Author        Karan Patel
+     * Date           10-7-23
+     * Description :  This method is used to create New ScheduleLine from Master Schedule.
+     */
+    
+    @AuraEnabled
+    public static void createScheduleLineFromMasterSchedule (String recordId, String masterId, Date initialStartDate){
+        System.debug('initialStartDate: ' + initialStartDate);
+        Map<Id, buildertek__Project_Task__c> projectInsertTaskMap = new Map<Id, buildertek__Project_Task__c>();
+        List<buildertek__Project_Task__c> masterScheduleList = new List<buildertek__Project_Task__c>([select Id, Name, buildertek__Start__c,buildertek__Contractor__c,buildertek__Phase__c, buildertek__Schedule__c,buildertek__Dependency__r.Name, buildertek__Dependency__r.buildertek__Schedule__c, buildertek__Completed__c, buildertek__Completion__c, buildertek__Contractor_Resource__c, buildertek__Type__c,buildertek__Cost_Code__c, buildertek__Duration__c, buildertek__Finish__c, buildertek__Resource__c, buildertek__Lag__c, buildertek__Last_Saved_End_Date__c, buildertek__Last_Saved_Start_Date__c, buildertek__Material_Ordered__c, buildertek__Material_Received__c, buildertek__Milestone__c, buildertek__Notes__c, buildertek__Order__c, buildertek__Original_End_Date__c, buildertek__Original_Start_Date__c, buildertek__Payable_Task__c, buildertek__Project__c, buildertek__Purchase_Order__c, buildertek__Reason_for_Date_Change__c, buildertek__Reason_for_Date_Change_PL__c, buildertek__Required_Completion_Date__c  from buildertek__Project_Task__c where buildertek__Schedule__c = :masterId  order by createdDate]);
+        
+        System.debug('masterScheduleList: ' + masterScheduleList);
+
+        Map<String, String> predecessorMap = new Map<String, String>();
+
+        for (buildertek__Project_Task__c Masterscheduleitem : masterScheduleList){
+            if (!Masterscheduleitem.buildertek__Milestone__c){
+
+                if (Masterscheduleitem.buildertek__Dependency__c != null) {
+                    predecessorMap.put(Masterscheduleitem.Id, Masterscheduleitem.buildertek__Dependency__c);
+                }
+
+                buildertek__Project_Task__c newSchItem = new buildertek__Project_Task__c();
+                newSchItem.buildertek__Completion__c = Masterscheduleitem.buildertek__Completion__c;
+                newSchItem.buildertek__Contractor__c = Masterscheduleitem.buildertek__Contractor__c;
+                newSchItem.buildertek__Contractor_Resource__c = Masterscheduleitem.buildertek__Contractor_Resource__c;
+                
+                if (Masterscheduleitem.buildertek__Duration__c != 0 && Masterscheduleitem.buildertek__Duration__c != null){
+                    newSchItem.buildertek__Duration__c = Masterscheduleitem.buildertek__Duration__c;
+                } else{
+                    newSchItem.buildertek__Duration__c = 1;
+                }
+
+                newSchItem.buildertek__Start__c = initialStartDate;
+                newSchItem.buildertek__Finish__c = addDaysSkippingWeekends(initialStartDate, Integer.valueOf(newSchItem.buildertek__Duration__c));
+                System.debug('finish date in import master before insertion ==> ' + newSchItem.buildertek__Finish__c + ' and master item id ' + newSchItem.id);
+                newSchItem.buildertek__Resource__c = Masterscheduleitem.buildertek__Resource__c;
+                newSchItem.buildertek__Lag__c = Masterscheduleitem.buildertek__Lag__c;
+                newSchItem.buildertek__Milestone__c = Masterscheduleitem.buildertek__Milestone__c;
+                newSchItem.buildertek__Notes__c = Masterscheduleitem.buildertek__Notes__c;
+                newSchItem.buildertek__Order__c = Masterscheduleitem.buildertek__Order__c;
+                newSchItem.buildertek__Original_Start_Date__c = Date.today();
+                newSchItem.buildertek__Original_End_Date__c = Date.today().adddays(Integer.valueOf(Masterscheduleitem.buildertek__Duration__c));
+                newSchItem.buildertek__Phase__c = Masterscheduleitem.buildertek__Phase__c;
+                newSchItem.buildertek__Type__c = Masterscheduleitem.buildertek__Type__c;
+                newSchItem.buildertek__Purchase_Order__c = Masterscheduleitem.buildertek__Purchase_Order__c;
+                newSchItem.buildertek__Reason_for_Date_Change__c = Masterscheduleitem.buildertek__Reason_for_Date_Change__c;
+                newSchItem.buildertek__Reason_for_Date_Change_PL__c = Masterscheduleitem.buildertek__Reason_for_Date_Change_PL__c;
+                newSchItem.buildertek__Required_Completion_Date__c = Masterscheduleitem.buildertek__Required_Completion_Date__c;
+                newSchItem.buildertek__Schedule__c = recordId;
+                newSchItem.buildertek__Reference_for_Import__c = Masterscheduleitem.Id;
+                
+                newSchItem.Name = Masterscheduleitem.Name;
+                buildertek__Project_Task__c newSchItemClone = newSchItem.Clone(false, true);
+                projectInsertTaskMap.put(Masterscheduleitem.Id, newSchItemClone);
+
+                System.debug('projectInsertTaskMap values ==> ' + projectInsertTaskMap.values());
+            }
+        }
+        // ProjectTaskTriggerHandler.blnSkipTaskTrigger = true;
+        insert projectInsertTaskMap.values();
+        // ProjectTaskTriggerHandler.blnSkipTaskTrigger = false;
+
+        for (String key : predecessorMap.keySet()) {
+            projectInsertTaskMap.get(key).buildertek__Dependency__c = projectInsertTaskMap.get(predecessorMap.get(key)).Id;
+        }
+        // ProjectTaskTriggerHandler.blnSkipTaskTrigger = true;
+        update projectInsertTaskMap.values();
+        // ProjectTaskTriggerHandler.blnSkipTaskTrigger = false;
+    }
+
+    // Skip weekend and calculate date
+	public static Date addDaysSkippingWeekends(Date startDate, Integer duration){
+		Date resultantStartDate = startDate;
+		Integer addedDays = 0;
+		while (addedDays < duration){
+			System.debug('resultantStartDate ==> '+resultantStartDate);
+			resultantStartDate = resultantStartDate.addDays(1);
+			System.debug('resultantStartDate after adding day ==> '+resultantStartDate);
+			DateTime currentDate = DateTime.newInstance(resultantStartDate.year(), resultantStartDate.month(), resultantStartDate.day());
+			String todayDay = currentDate.format('EEEE');
+			if (todayDay != 'Saturday' && todayDay != 'Sunday'){
+				++addedDays;
+			}
+		}
+		System.debug('end resultantStartDate in addDayskepping method ==> '+resultantStartDate);
+		return resultantStartDate;
+	}
+
 }
