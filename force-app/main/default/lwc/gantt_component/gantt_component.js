@@ -256,23 +256,7 @@ export default class Gantt_component extends LightningElement {
             },
             {
                 type: "name",
-                width: 250,
-                renderer: (record) => {
-                  console.log('record :- ', JSON.parse(JSON.stringify(record.record.data)));
-                  if (record.record._data.type == "Phase") {
-                    record.cellElement.style.margin = "";
-                  }
-                  if (
-                    record.record._data.iconCls == "b-fa b-fa-arrow-left indentTrue"
-                  ) {
-                    record.record._data.iconCls == "b-fa fa-solid fa-list-check indentTrue"
-                  }
-                  if (record.record._data.name == "Milestone Complete") {
-                    return "Milestone";
-                  } else {
-                    return record.value;
-                  }
-              },
+                width: 250
             },
             {
                 type: "startdate"
@@ -492,30 +476,12 @@ export default class Gantt_component extends LightningElement {
                         }
                     }
                 },
-                pdfExport : {
-                  exportServer : 'http://localhost:8080' // Required
-              },
-              mspExport : {
-                // Choose the filename for the exported file
-                filename : 'Gantt Export'
-            }
             }
         });
 
         gantt.on('cellClick', ({ record }) => {
             // Scroll the associated task into view
             gantt.scrollTaskIntoView(record);
-        });
-
-        gantt.features.pdfExport.showExportDialog();
-
-        // Simple export
-        gantt.features.pdfExport.export({
-            // Required, set list of column ids to export
-            columns : gantt.columns.map(c => c.id)
-        }).then(result => {
-            // Response instance and response content in JSON
-            let { response, responseJSON } = result;
         });
 
         console.log('gantt:-', gantt);

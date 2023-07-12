@@ -272,8 +272,8 @@ export default base => class GanttToolbar extends base {
                             onAction : () => {
                                 console.log('In export function');
                                 const filename = 'test file.xml';
-                                this.gantt.features.mspExporter.export({
-                                    filename : 'Test File.xml'
+                                gantt.features.excelExporter.export({
+                                    filename
                                 });
                             }
                         },
@@ -505,9 +505,9 @@ export default base => class GanttToolbar extends base {
         // let temp2 = this.gantt.__data;
         // console.log('gantt :- ',temp2);
         try {
-            console.log('gantt-->',this.gantt);
+            console.log('gantt-->',this.gantt.data[0]._data);
             // let temp = this.gantt.tasks;
-            let temp = this.gantt.data;
+            let temp = this.gantt.data[0];
             console.log('gantt data:- ',JSON.parse(JSON.stringify(temp)));
             console.log('gantt project data:- ',this.gantt.project);
 
