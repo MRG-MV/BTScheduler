@@ -1,5 +1,5 @@
 public with sharing class bryntumGanttController {
-    
+
     @AuraEnabled
     public static DataTableDetails getScheduleWrapperAtLoading(string scheduleid){
 
@@ -305,6 +305,69 @@ public with sharing class bryntumGanttController {
         return conWrapList;
     }
 
+    @AuraEnabled
+    public static buildertek__Project_Task__c saveResourceForRecord(Id taskId, String resourceId, String resourceApiName){
+        System.debug('check param here');
+        System.debug('taskID '+taskId);
+        System.debug('resourceID '+resourceId);
+        System.debug('resourceAPIName '+resourceApiName);
+        string rel = resourceApiName.split('__c')[0] + '__r.Name';
+        String queryStr = 'Select Id,Name,' + resourceApiName + ',' + rel + ' From buildertek__Project_Task__c Where Id=:taskId';
+        String apiName = resourceApiName;
+        System.debug('apiName>>>' + apiName);
+        buildertek__Project_Task__c updateTask = Database.query(queryStr);
+        List<buildertek__Project_Task__c> updateTaskResourceList = new List<buildertek__Project_Task__c>();
+        if (resourceApiName == 'buildertek__Resource__c'){
+            if (resourceId != null){
+                system.debug(updateTask.buildertek__Resource__c);
+                system.debug(resourceId);
+                buildertek__Project_Task__c projTask = new buildertek__Project_Task__c();
+                projTask.Id = updateTask.Id;
+                projTask.buildertek__Resource__c = resourceId;
+                updateTaskResourceList.add(projTask);
+                update updateTaskResourceList;
+                system.debug(updateTaskResourceList[0].buildertek__Resource__c);
+            }
+        } else if (apiName == 'buildertek__Contractor_Resource__c'){
+            if (resourceId != null){
+                Contact con = [SELECT Id, AccountId
+                               from Contact
+                               Where id = :resourceId];
+                buildertek__Project_Task__c projTask = new buildertek__Project_Task__c();
+                projTask.Id = updateTask.Id;
+                projTask.buildertek__Contractor_Resource__c = resourceId;
+                projTask.buildertek__Contractor__c = con.AccountId;
+                updateTaskResourceList.add(projTask);
+                update updateTaskResourceList;
+            }
+        }
+
+
+        //added for contractor
+        else if (apiName == 'buildertek__Contractor__c'){
+
+            System.debug('In contractor>>>>');
+            System.debug('resourceId>>>' + resourceId);
+            System.debug('resourceApiName>>>' + resourceApiName);
+            if (resourceId != null){
+                Account acc = [SELECT Id, Name
+                               from Account
+                               Where Id = :resourceId];
+                buildertek__Project_Task__c projTask = new buildertek__Project_Task__c();
+                projTask.Id = updateTask.Id;
+                // projTask.buildertek__Contractor_Resource__c = resourceId;
+                projTask.buildertek__Contractor__c = acc.Id;
+                updateTaskResourceList.add(projTask);
+                update updateTaskResourceList;
+            }
+        }
+
+
+        return updateTask;
+    }
+
+
+
     public class DataTableDetails{
         @AuraEnabled
         public List<buildertek__Project_Task__c> lstOfSObjs = new List<buildertek__Project_Task__c>();
@@ -512,13 +575,13 @@ public with sharing class bryntumGanttController {
      * Date           10-7-23
      * Description :  This method is used to create New ScheduleLine from Master Schedule.
      */
-    
+
     @AuraEnabled
     public static void createScheduleLineFromMasterSchedule (String recordId, String masterId, Date initialStartDate){
         System.debug('initialStartDate: ' + initialStartDate);
         Map<Id, buildertek__Project_Task__c> projectInsertTaskMap = new Map<Id, buildertek__Project_Task__c>();
         List<buildertek__Project_Task__c> masterScheduleList = new List<buildertek__Project_Task__c>([select Id, Name, buildertek__Start__c,buildertek__Contractor__c,buildertek__Phase__c, buildertek__Schedule__c,buildertek__Dependency__r.Name, buildertek__Dependency__r.buildertek__Schedule__c, buildertek__Completed__c, buildertek__Completion__c, buildertek__Contractor_Resource__c, buildertek__Type__c,buildertek__Cost_Code__c, buildertek__Duration__c, buildertek__Finish__c, buildertek__Resource__c, buildertek__Lag__c, buildertek__Last_Saved_End_Date__c, buildertek__Last_Saved_Start_Date__c, buildertek__Material_Ordered__c, buildertek__Material_Received__c, buildertek__Milestone__c, buildertek__Notes__c, buildertek__Order__c, buildertek__Original_End_Date__c, buildertek__Original_Start_Date__c, buildertek__Payable_Task__c, buildertek__Project__c, buildertek__Purchase_Order__c, buildertek__Reason_for_Date_Change__c, buildertek__Reason_for_Date_Change_PL__c, buildertek__Required_Completion_Date__c  from buildertek__Project_Task__c where buildertek__Schedule__c = :masterId  order by createdDate]);
-        
+
         System.debug('masterScheduleList: ' + masterScheduleList);
 
         Map<String, String> predecessorMap = new Map<String, String>();
@@ -534,7 +597,7 @@ public with sharing class bryntumGanttController {
                 newSchItem.buildertek__Completion__c = Masterscheduleitem.buildertek__Completion__c;
                 newSchItem.buildertek__Contractor__c = Masterscheduleitem.buildertek__Contractor__c;
                 newSchItem.buildertek__Contractor_Resource__c = Masterscheduleitem.buildertek__Contractor_Resource__c;
-                
+
                 if (Masterscheduleitem.buildertek__Duration__c != 0 && Masterscheduleitem.buildertek__Duration__c != null){
                     newSchItem.buildertek__Duration__c = Masterscheduleitem.buildertek__Duration__c;
                 } else{
@@ -559,7 +622,7 @@ public with sharing class bryntumGanttController {
                 newSchItem.buildertek__Required_Completion_Date__c = Masterscheduleitem.buildertek__Required_Completion_Date__c;
                 newSchItem.buildertek__Schedule__c = recordId;
                 newSchItem.buildertek__Reference_for_Import__c = Masterscheduleitem.Id;
-                
+
                 newSchItem.Name = Masterscheduleitem.Name;
                 buildertek__Project_Task__c newSchItemClone = newSchItem.Clone(false, true);
                 projectInsertTaskMap.put(Masterscheduleitem.Id, newSchItemClone);
@@ -597,4 +660,17 @@ public with sharing class bryntumGanttController {
 		return resultantStartDate;
 	}
 
+    // get phase values for gantt
+    @AuraEnabled
+    public static Map<String, List<String>> getPickListValuesIntoList(){
+        List<String> pickListValuesList= new List<String>();
+        Map<String, List<String>> pickListValuesMap = new Map<String, List<String>>();
+        Schema.DescribeFieldResult fieldResult = buildertek__Project_Task__c.buildertek__Phase__c.getDescribe();
+        List<Schema.PicklistEntry> ple = fieldResult.getPicklistValues();
+        for( Schema.PicklistEntry pickListVal : ple){
+            pickListValuesList.add(pickListVal.getLabel());
+        }
+        pickListValuesMap.put('PhaseValue',pickListValuesList);
+        return pickListValuesMap;
+    }
 }

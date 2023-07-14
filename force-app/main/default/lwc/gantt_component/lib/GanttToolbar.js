@@ -1,4 +1,5 @@
 /* globals bryntum : true */
+import { formatJSDatatoApexData } from "../gantt_componentHelper";
 export default base => class GanttToolbar extends base {
     static get $name() {
         return 'GanttToolbar';
@@ -266,16 +267,11 @@ export default base => class GanttToolbar extends base {
                         },
                         {
                             type     : 'button',
-                            text     : 'Export as .xslx',
+                            text     : 'Export Schedule',
+                            color    : 'b-blue',
                             ref      : 'excelExportBtn',
                             icon     : 'b-fa-file-export',
-                            onAction : () => {
-                                console.log('In export function');
-                                const filename = 'test file.xml';
-                                gantt.features.excelExporter.export({
-                                    filename
-                                });
-                            }
+                            onAction : 'up.onExportclick'
                         },
                         {
                             type       : 'button',
@@ -502,18 +498,24 @@ export default base => class GanttToolbar extends base {
     }
 
     onSaveClick(){
-        // let temp2 = this.gantt.__data;
-        // console.log('gantt :- ',temp2);
         try {
-            console.log('gantt-->',this.gantt.data[0]._data);
-            // let temp = this.gantt.tasks;
-            let temp = this.gantt.data[0];
-            console.log('gantt data:- ',JSON.parse(JSON.stringify(temp)));
-            console.log('gantt project data:- ',this.gantt.project);
+            var libraryDataList = [];
+            console.log('this.gantt.data ',JSON.parse(JSON.stringify(this.gantt.data)));
+            for (let i = 0; i < this.gantt.data.length; i++) {
+                const data = this.gantt.data[i]._data;
+                libraryDataList.push(data);
+            }
+            console.log('new data lib ',JSON.parse(JSON.stringify(libraryDataList)));
+            let dataForApexController = formatJSDatatoApexData(libraryDataList);
+            console.log('check new data here ',JSON.parse(JSON.stringify(dataForApexController)));
 
         } catch (error) {
             console.log('Error-->'+error+' message-->'+error.message);
         }
 
+    }
+
+    onExportclick(){
+        this.gantt.callGanttComponent.exportData();
     }
 };
