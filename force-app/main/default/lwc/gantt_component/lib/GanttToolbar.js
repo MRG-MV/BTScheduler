@@ -505,14 +505,15 @@ export default base => class GanttToolbar extends base {
                 const data = this.gantt.data[i]._data;
                 libraryDataList.push(data);
             }
-            console.log('new data lib ',JSON.parse(JSON.stringify(libraryDataList)));
+            console.log('JON Task date ',JSON.parse(JSON.stringify(libraryDataList)));
             let dataForApexController = formatJSDatatoApexData(libraryDataList);
-            console.log('check new data here ',JSON.parse(JSON.stringify(dataForApexController)));
+            this.gantt.callGanttComponent.saveChanges(dataForApexController.scheduleObj,dataForApexController.scheduleItemList)
+            console.log('check new data here ',JSON.parse(JSON.stringify(dataForApexController.scheduleObj)));
+            console.log('check new data here ',JSON.parse(JSON.stringify(dataForApexController.scheduleItemList)));
 
         } catch (error) {
             console.log('Error-->'+error+' message-->'+error.message);
         }
-
     }
 
     onExportclick(){

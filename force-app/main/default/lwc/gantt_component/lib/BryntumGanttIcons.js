@@ -126,7 +126,7 @@ function populateIcons(record) {
                         }
                     } else {
                         var iconElement = `<span class="slds-icon_container slds-icon-custom-custom83" style="background:orange;">
-                        <svg aria-hidden="true" class="slds-icon slds-icon-text-default" style="fill: #FFFFFF !important; background: #03cfff !important; border-radius:20% !important;height:1.3rem;width:1.3rem;">
+                        <svg aria-hidden="true" class="slds-icon slds-icon-text-default" style="fill: #FFFFFF !important; background: #8ee997 !important; border-radius:20% !important;height:1.3rem;width:1.3rem;">
                         <use xmlns:xlink=" http://www.w3.org/1999/xlink" xlink:href="/apexpages/slds/latest/assets/icons/custom-sprite/svg/symbols.svg#custom83">
                         </use>
                     </svg>

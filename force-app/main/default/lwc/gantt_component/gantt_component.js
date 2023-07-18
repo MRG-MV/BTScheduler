@@ -12,16 +12,18 @@ import {
   loadScript,
   loadStyle
 } from "lightning/platformResourceLoader";
-import GANTT from "@salesforce/resourceUrl/bryntum_gantt_new";
 
 import GanttStyle from "@salesforce/resourceUrl/buildertek__BT_Bryntum_NewGanttCss";
 import GANTTModule from "@salesforce/resourceUrl/buildertek__BT_Bryntum_NewGantt_ModuleJS";
+
+// import { Spinner } from "@bryntum/gantt/components/Spinner"
 
 // import GanttStyle from "@salesforce/resourceUrl/BT_Bryntum_NewGanttCss";
 import GanttToolbarMixin from "./lib/GanttToolbar";
 import data from "./data/launch-saas";
 import scheduleWrapperDataFromApex from "@salesforce/apex/bryntumGanttController.getScheduleWrapperAtLoading";
 import saveResourceForRecord from "@salesforce/apex/bryntumGanttController.saveResourceForRecord";
+import upsertDataOnSaveChanges from "@salesforce/apex/bryntumGanttController.upsertDataOnSaveChanges";
 import getPickListValuesIntoList from "@salesforce/apex/bryntumGanttController.getPickListValuesIntoList";
 import {
   formatApexDatatoJSData
@@ -29,6 +31,7 @@ import {
 import {
   populateIcons
 } from "./lib/BryntumGanttIcons";
+import bryntum_gantt from "@salesforce/resourceUrl/buildertek__bryntum_gantt";
 
 export default class Gantt_component extends LightningElement {
   @track islibraryloaded = false;
@@ -64,6 +67,51 @@ export default class Gantt_component extends LightningElement {
   @track contracFieldApiName;
   @track contractorname;
 
+  @api newTaskRecordCreate = {
+    sObjectType: "buildertek__Project_Task__c",
+    Name: "",
+    Id: "",
+    buildertek__Phase__c: "",
+    buildertek__Dependency__c: "",
+    buildertek__Completion__c: "",
+    buildertek__Start__c: "",
+    buildertek__Finish__c: "",
+    buildertek__Duration__c: "",
+    buildertek__Lag__c: "",
+    buildertek__Resource__c: "",
+    buildertek__Contractor__c: "",
+    buildertek__Contractor_Resource__c: "",
+    buildertek__Schedule__c: "",
+    buildertek__Order__c: "",
+    buildertek__Notes__c: "",
+    buildertek__Budget__c: "",
+    buildertek__Add_To_All_Active_Schedules__c: "",
+    buildertek__Type__c: "Task",
+    buildertek__Indent_Task__c: false,
+  };
+  @api newTaskRecordClone = {
+    sObjectType: "buildertek__Project_Task__c",
+    Name: "",
+    Id: "",
+    buildertek__Type__c: "Task",
+    buildertek__Phase__c: "",
+    buildertek__Dependency__c: "",
+    buildertek__Completion__c: "",
+    buildertek__Start__c: "",
+    buildertek__Finish__c: "",
+    buildertek__Duration__c: "",
+    buildertek__Lag__c: "",
+    buildertek__Resource__c: "",
+    buildertek__Contractor__c: "",
+    buildertek__Contractor_Resource__c: "",
+    buildertek__Schedule__c: "",
+    buildertek__Order__c: "",
+    buildertek__Notes__c: "",
+    buildertek__Budget__c: "",
+    buildertek__Indent_Task__c: false,
+    buildertek__Add_To_All_Active_Schedules__c: "",
+  };
+
 
   connectedCallback() {
     console.log("Connected Callback new gantt chart");
@@ -71,8 +119,8 @@ export default class Gantt_component extends LightningElement {
     if (this.SchedulerId == null || this.SchedulerId == undefined) {
       if (this.recordId == null || this.recordId == undefined) {
         this.SchedulerId = "a2zDm0000004bPuIAI"; // trail org
-        // this.SchedulerId = 'a2zDm000000suFyIAI' // New
-        //   this.SchedulerId = 'a101K00000GobTCQAZ' // Old
+        // this.SchedulerId = 'a101K00000GobT6QAJ' // New
+          // this.SchedulerId = 'a101K00000GobTCQAZ' // Old
       } else {
         this.SchedulerId = this.recordId;
       }
@@ -269,6 +317,54 @@ export default class Gantt_component extends LightningElement {
     });
   }
 
+  addNewTaskToSchedule(record){
+    var newTaskeDate;
+    var dt;
+    Object.assign(this.newTaskRecordCreate, this.newTaskRecordClone);
+    if (record) {
+      console.log({
+        record,
+      });
+      if (record._data.type == "Task") {
+        this.newTaskRecordCreate["buildertek__Dependency__c"] = record._data.id;
+        this.newTaskRecordCreate["buildertek__Order__c"] = record._data.order;
+      }
+      if (record._data.phase) {
+        this.newTaskRecordCreate["buildertek__Phase__c"] =
+          record._data.phase != "null" ? record._data.phase : "";
+      } else if (record._data.type == "Phase") {
+        this.newTaskRecordCreate["buildertek__Phase__c"] = record._data.name;
+      }
+
+      dt = record._data.endDate;
+    }
+    this.showEditPopup = true;
+    this.taskRecordId = "";
+    this.newTaskRecordCreate["Name"] = "";
+    if (record && record._data.endDate && record._data.type == "Task") {
+      dt = record._data.endDate;
+    } else {
+      dt = new Date();
+      newTaskeDate = new Date().toLocaleDateString().split("/");
+    }
+    if (dt.getDay() == 6) {
+      dt.setDate(dt.getDate() + 2);
+    }
+    if (dt.getDay() == 0) {
+      dt.setDate(dt.getDate() + 1);
+    }
+    newTaskeDate = dt.toLocaleDateString().split("/");
+    this.newTaskRecordCreate["buildertek__Start__c"] =
+    dt.getFullYear() + "-" + Number(dt.getMonth() + 1) + "-" + dt.getDate();
+    this.newTaskRecordCreate["buildertek__Duration__c"] = 1;
+    this.newTaskRecordCreate["buildertek__Finish__c"] =
+    this.newTaskRecordCreate["buildertek__Start__c"];
+    this.newTaskRecordCreate["buildertek__Completion__c"] = 0;
+    this.newTaskRecordCreate["buildertek__Lag__c"] = 0;
+    this.blankPredecessor = false;
+
+  }
+
 
   handleAccountSelection(event) {
     if (event.detail.fieldNameapi == "buildertek__Dependency__c") {
@@ -435,6 +531,12 @@ export default class Gantt_component extends LightningElement {
     }
   }
 
+  addtaskeventcall(taskrecord){
+    console.log('In addtaskeventcall method');
+    console.log(taskrecord);
+  }
+
+
   createGanttChartInitially() {
     const GanttToolbar = GanttToolbarMixin(bryntum.gantt.Toolbar);
 
@@ -489,6 +591,7 @@ export default class Gantt_component extends LightningElement {
       dependenciesData: taskDependencyData,
       calendarsData: data.calendars.rows
     });
+
     console.log("project:-", project);
     const gantt = new bryntum.gantt.Gantt({
       project,
@@ -543,10 +646,6 @@ export default class Gantt_component extends LightningElement {
         },
         renderer: (record) => {
           populateIcons(record);
-          console.log(
-            "record :- ",
-            JSON.parse(JSON.stringify(record.record.data))
-          );
           if (record.record._data.type == "Project") {
             return "";
           }
@@ -562,13 +661,8 @@ export default class Gantt_component extends LightningElement {
       },
       {
         text: "Internal Resource",
-        type: "resourceassignment",
         width: 120,
         editor: false,
-        items: {
-          Test1: "Test1",
-          Test2: "Test2"
-        },
         renderer: function (record) {
           populateIcons(record);
           if (
@@ -615,10 +709,6 @@ export default class Gantt_component extends LightningElement {
         editor: false,
         renderer: function (record) {
           populateIcons(record);
-          console.log(
-            "record :- ",
-            JSON.parse(JSON.stringify(record.record.data))
-          );
 
           if (
             record.record._data.type == "Task" &&
@@ -709,6 +799,7 @@ export default class Gantt_component extends LightningElement {
       // {
       //   type: "constrainttype"
       // },
+      
       {
         type: "addnew"
       }
@@ -724,7 +815,6 @@ export default class Gantt_component extends LightningElement {
       },
 
       columnLines: false,
-
 
       features: {
         rowReorder: false,
@@ -763,7 +853,7 @@ export default class Gantt_component extends LightningElement {
                   weight: 200,
                   label: 'Phase',
                   items: this.phaseNameList,
-                  name: 'Phase'
+                  name: 'phase'
                 }
               }
             },
@@ -772,7 +862,8 @@ export default class Gantt_component extends LightningElement {
             resourcesTab: false,
             advancedTab: false
           }
-        }
+        },
+
       }
     });
 
@@ -785,6 +876,15 @@ export default class Gantt_component extends LightningElement {
     gantt.callGanttComponent = this;
 
     console.log("gantt:-", gantt);
+
+    gantt.on("addSuccessor", (event) => {
+      // Get the data of the new task.
+      const taskData = event.task;
+      
+      debugger;
+      // Do something with the data.
+      console.log("New task data: ", taskData);
+    });
 
     //Resources data
     gantt.addListener("cellClick", (event) => {
@@ -860,17 +960,6 @@ export default class Gantt_component extends LightningElement {
         record
       });
       console.log('log :- ', record._data.type);
-      // var droppedRecord = event.records; // The record being dropped
-      // var targetRecord = event.targetRecord; // The record on which the drop occurred
-      // var position = event.position; // The position where the record was dropped (e.g., 'before', 'after', 'child')
-      // var draggedRow = event.draggedRow;
-      // var droppedRow = event.droppedRow;
-      // // Perform your custom logic here based on the dropped record, target record, and position
-      // console.log('draggedRow :',draggedRow);
-      // console.log('droppedRow :',droppedRow);
-      // console.log('Dropped Record:', droppedRecord);
-      // console.log('Target Record:', targetRecord);
-      // console.log('Position:', position);
 
       // Example logic: If the dropped record should be added as a child of the target record
       if (position === 'child') {
@@ -879,6 +968,12 @@ export default class Gantt_component extends LightningElement {
       }
     });
 
+    grid.maskBody('Loading data');
+    // Your custom loading code
+    load.then(() => {
+       // Hide the mask when loading is finished
+       grid.unmaskBody();
+    });
 
     project.commitAsync().then(() => {
       // console.timeEnd("load data");
@@ -900,6 +995,32 @@ export default class Gantt_component extends LightningElement {
         );
       });
     });
+  }
+
+  //* calling this method on save changes
+  saveChanges(scheduleData, taskData) {
+    var that = this;
+    upsertDataOnSaveChanges({
+      scheduleRecordStr: JSON.stringify(scheduleData),
+      taskRecordsStr: JSON.stringify(taskData),
+    })
+      .then(function (response) {
+        console.log('response ',{response});
+        // const filterChangeEvent = new CustomEvent("filterchange", {
+        //   detail: {
+        //     message: "refresh page",
+        //   },
+        // });
+        // that.isLoaded = false;
+        // that.dispatchEvent(filterChangeEvent);
+        // window.location.reload();
+      })
+      .catch((error) => {
+        console.log("error --> ", {
+          error,
+        });
+        this.isLoaded = false;
+      });
   }
 
   hideModalBox(event) {

@@ -176,18 +176,18 @@ function formatApexDatatoJSData(scheduleData, scheduleItemsData, scheduleItemsDa
             taskPhaseRow["children"].push(rowChilObj);
 
             var found = false;
-               if(firstRowDup['children'].length){
-                   for(var k=0;k<firstRowDup['children'].length;k++){
-                       if(firstRowDup['children'][k].id == taskPhaseRow['id']){
+            if(firstRowDup['children'].length){
+                for(var k=0;k<firstRowDup['children'].length;k++){
+                    if(firstRowDup['children'][k].id == taskPhaseRow['id']){
                         firstRowDup['children'][k] = taskPhaseRow
                         found = true
                     }
                 }
-               }else{
+            }else{
                 firstRowDup['children'].push(taskPhaseRow);
                 found = true
             }
-               if(!found){
+            if(!found){
                 firstRowDup['children'].push(taskPhaseRow);
             }
         }else if(taskListForPhase[i].buildertek__Phase__c && !taskPhaseRow){
@@ -480,15 +480,15 @@ function formatJSDatatoApexData(libraryDataList) {
         var scheduleItemObj = {};
         console.log('check lib data ',LibraryData);
         if (LibraryData['type'] === "Project") {
-            const endDateTimeSchedule = convertDateTime(LibraryData.endDate);
+            const endDateTimeSchedule = covertIntoDate(LibraryData.endDate);
             scheduleObj['id'] = LibraryData.id;
-            scheduleObj['buildertek__End_date__c'] = endDateTimeSchedule.substring(0, 8);
+            scheduleObj['buildertek__End_date__c'] = endDateTimeSchedule;
         }else if(LibraryData['type'] === "Task"){
             scheduleItemObj['Id'] = LibraryData.id;
             scheduleItemObj['Name'] = LibraryData.name;
             scheduleItemObj['buildertek__Completion__c'] = LibraryData.percentDone;
-            scheduleItemObj['buildertek__Start_Date_Time__c'] = convertDateTime(LibraryData.startDate);
-            scheduleItemObj['buildertek__End_Date_Time__c'] = convertDateTime(LibraryData.endDate);
+            scheduleItemObj['buildertek__Start__c'] = covertIntoDate(LibraryData.startDate);
+            scheduleItemObj['buildertek__Finish__c'] = covertIntoDate(LibraryData.endDate);
             scheduleItemObj['buildertek__Duration__c'] = LibraryData.duration;
             scheduleItemObj['buildertek__Dependency__c'] = LibraryData.predecessor;
             scheduleItemObj['buildertek__Phase__c'] = LibraryData.phase;
@@ -502,6 +502,7 @@ function formatJSDatatoApexData(libraryDataList) {
     return dataForApexController;
 }
 
+// for converting into date time formate
 function convertDateTime(dateString) {
     // Convert the date string to a JavaScript Date object
     const date = new Date(dateString);
@@ -515,5 +516,19 @@ function convertDateTime(dateString) {
     const newDate = formattedDate.slice(0, -1);
     return newDate;
   }
+
+function covertIntoDate(date) {
+    var d = new Date(date),
+    month = '' + (d.getMonth() + 1),
+    day = '' + d.getDate(),
+    year = d.getFullYear();
+
+    if (month.length < 2)
+        month = '0' + month;
+    if (day.length < 2)
+        day = '0' + day;
+
+    return [year, month, day].join('-');
+}
 
 export{ formatApexDatatoJSData, formatJSDatatoApexData};
